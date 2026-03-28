@@ -1,19 +1,18 @@
 """
-PayFlow Models - User, Merchantm, Order, Payment
+PayFlow Models - User, Merchant, Order, Payment
 """
 from datetime import datetime
-from sqlite3 import paramstyle
+import hashlib
 import uuid
 
 class User:
     def __init__(self, name, email, password, balance=0):
         self.user_id = str(uuid.uuid4())
-        self.name = name 
-        self.password = password
+        self.name = name
+        self.password = hashlib.sha256(password.encode()).hexdigest()
         self.email = email
         self.balance = balance
         self.is_active = True
-        self.orders = []
 
 
     def __str__(self):
@@ -50,10 +49,10 @@ class Merchant:
         self.category = category
         self.is_active = True
         self.balance = 0
-        self.total_sales = 0
+        self.total_transactions = 0
 
     def __str__(self):
-        return f"{self.name} ({self.category}) - Sales: {self.total_sales}"
+        return f"{self.name} ({self.category}) - Transactions: {self.total_transactions}"
 
     def receive_payment(self, amount):
         if not self.is_active:
@@ -61,7 +60,7 @@ class Merchant:
         if amount <= 0:
             raise ValueError("Amount must be positive")
         self.balance += amount
-        self.total_sales += 1
+        self.total_transactions += 1
         return self.balance
 
     def deactivate(self):
@@ -112,10 +111,11 @@ class Order:
         if len(self.payments) >= self.num_installments:
             raise ValueError("All installments already paid")
 
-        
-        payment = Payment(self, self.installment_amount)
-        self.user.withdraw(self.installment_amount)
-        self.merchant.receive_payment(self.installment_amount)
+        is_last = len(self.payments) == self.num_installments - 1
+        amount = self.get_remaining() if is_last else self.installment_amount
+        payment = Payment(self, amount)
+        self.user.withdraw(amount)
+        self.merchant.receive_payment(amount)
         payment.status = "completed"
         self.payments.append(payment)
         self.status = "active"

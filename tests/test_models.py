@@ -1,4 +1,5 @@
 
+import hashlib
 import pytest
 from app.models import Payment, User, Merchant, Order
 
@@ -6,21 +7,19 @@ class TestUser:
     def test_create_user(self, sample_user):
         assert sample_user.name == "Test User"
         assert sample_user.email == "testuser@example.com"
-        assert sample_user.password == "testpass"
+        assert sample_user.password == hashlib.sha256("testpass".encode()).hexdigest()
         assert sample_user.balance == 5000
         assert sample_user.is_active is True
         assert isinstance(sample_user.user_id, str)
-        assert sample_user.orders == []
 
     def test_deposit(self, sample_user):
         result = sample_user.deposit(1000)
-        assert result == 6000 
+        assert result == 6000
         assert sample_user.balance == 6000
 
-
     def test_withdraw(self, sample_user):
-            result = sample_user.withdraw(2000)
-            assert result == 3000
+        result = sample_user.withdraw(2000)
+        assert result == 3000
 
     def test_withdraw_insufficient(self, poor_user):
         with pytest.raises(ValueError):
@@ -42,14 +41,14 @@ class TestMerchant:
         assert sample_merchant.email == "merchant@example.com"
         assert sample_merchant.is_active is True
         assert sample_merchant.balance == 0
-        assert sample_merchant.total_sales == 0
+        assert sample_merchant.total_transactions == 0
 
-    def test_recive_payment(self, sample_merchant):
+    def test_receive_payment(self, sample_merchant):
         result = sample_merchant.receive_payment(500)
         assert result == 500
-        assert sample_merchant.total_sales == 1
+        assert sample_merchant.total_transactions == 1
 
-    def test_deactiveted_merchant(self, sample_merchant):
+    def test_deactivated_merchant(self, sample_merchant):
         sample_merchant.deactivate()
         with pytest.raises(ValueError):
             sample_merchant.receive_payment(100)
@@ -93,3 +92,25 @@ class TestOrder:
         sample_order.reject("Fraud")
         with pytest.raises(ValueError):
             sample_order.make_payment()
+
+    def test_installment_rounding(self, sample_user, sample_merchant):
+        order = Order(sample_user, sample_merchant, 100, 3)
+        order.approve()
+        for _ in range(3):
+            order.make_payment()
+        assert order.status == "completed"
+        assert order.get_remaining() == 0
+
+
+class TestPayment:
+    def test_create_payment(self, sample_order):
+        sample_order.approve()
+        payment = sample_order.make_payment()
+        assert isinstance(payment.payment_id, str)
+        assert payment.amount == 300.0
+        assert payment.status == "completed"
+
+    def test_payment_links_to_order(self, sample_order):
+        sample_order.approve()
+        payment = sample_order.make_payment()
+        assert payment.order is sample_order

@@ -29,7 +29,7 @@ class Database:
                 email TEXT UNIQUE NOT NULL,
                 category TEXT NOT NULL,
                 balance REAL DEFAULT 0,
-                total_sales INTEGER DEFAULT 0,
+                total_transactions INTEGER DEFAULT 0,
                 is_active INTEGER DEFAULT 1
             );
 
@@ -91,10 +91,10 @@ class Database:
 
     def save_merchant(self, merchant):
         self.connection.execute(
-            "INSERT INTO merchants (merchant_id, name, email, category, balance, total_sales, is_active) "
+            "INSERT INTO merchants (merchant_id, name, email, category, balance, total_transactions, is_active) "
             "VALUES (?, ?, ?, ?, ?, ?, ?)",
             (merchant.merchant_id, merchant.name, merchant.email,
-             merchant.category, merchant.balance, merchant.total_sales,
+             merchant.category, merchant.balance, merchant.total_transactions,
              int(merchant.is_active)),
         )
         self.connection.commit()
@@ -107,9 +107,9 @@ class Database:
     def update_merchant(self, merchant):
         self.connection.execute(
             "UPDATE merchants SET name=?, email=?, category=?, balance=?, "
-            "total_sales=?, is_active=? WHERE merchant_id=?",
+            "total_transactions=?, is_active=? WHERE merchant_id=?",
             (merchant.name, merchant.email, merchant.category,
-             merchant.balance, merchant.total_sales,
+             merchant.balance, merchant.total_transactions,
              int(merchant.is_active), merchant.merchant_id),
         )
         self.connection.commit()
