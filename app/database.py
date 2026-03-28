@@ -7,7 +7,7 @@ import sqlite3
 class Database:
     def __init__(self, db_path="payflow.db"):
         self.db_path = db_path
-        self.connection = sqlite3.connect(db_path)
+        self.connection = sqlite3.connect(db_path, check_same_thread=False)
         self.connection.row_factory = sqlite3.Row
         self.connection.execute("PRAGMA foreign_keys = ON")
         self._create_tables()
@@ -103,6 +103,11 @@ class Database:
         return self.connection.execute(
             "SELECT * FROM merchants WHERE merchant_id = ?", (merchant_id,)
         ).fetchone()
+
+    def get_all_merchants(self):
+        return self.connection.execute(
+            "SELECT * FROM merchants WHERE is_active = 1"
+        ).fetchall()
 
     def update_merchant(self, merchant):
         self.connection.execute(

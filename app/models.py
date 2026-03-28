@@ -37,6 +37,17 @@ class User:
         self.balance -= amount
         return self.balance
 
+    @classmethod
+    def from_row(cls, row):
+        user = object.__new__(cls)
+        user.user_id = row["user_id"]
+        user.name = row["name"]
+        user.email = row["email"]
+        user.password = row["password"]
+        user.balance = row["balance"]
+        user.is_active = bool(row["is_active"])
+        return user
+
     def deactivate(self):
         self.is_active = False
 
@@ -53,6 +64,18 @@ class Merchant:
 
     def __str__(self):
         return f"{self.name} ({self.category}) - Transactions: {self.total_transactions}"
+
+    @classmethod
+    def from_row(cls, row):
+        merchant = object.__new__(cls)
+        merchant.merchant_id = row["merchant_id"]
+        merchant.name = row["name"]
+        merchant.email = row["email"]
+        merchant.category = row["category"]
+        merchant.balance = row["balance"]
+        merchant.total_transactions = row["total_transactions"]
+        merchant.is_active = bool(row["is_active"])
+        return merchant
 
     def receive_payment(self, amount):
         if not self.is_active:
