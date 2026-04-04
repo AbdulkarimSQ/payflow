@@ -8,6 +8,16 @@ from flask import Flask, request, jsonify
 from app.models import User, Merchant, Order, Payment
 from app.database import Database
 from app.auth import create_token, token_required
+from app.rate_limiter import login_limiter
+from app.validators import validate_email, validate_password, validate_name, validate_amount
+from app.rate_limiter import login_limiter
+
+def _validate(checks):
+    """Run a list of (valid, err) checks, return first error or None."""
+    for valid, err in checks:
+        if not valid:
+            return jsonify({"error": err}), 400
+    return None
 
 app = Flask(__name__)
 db = Database(os.environ.get("PAYFLOW_DB", "payflow.db"))
@@ -27,9 +37,14 @@ def health():
 # ═══ Register ═══
 @app.route("/api/register", methods=["POST"])
 def register():
-    data = request.json
-    if not data or not data.get("name") or not data.get("email") or not data.get("password"):
-        return jsonify({"error": "Missing required fields"}), 400
+    data = request.json or {}
+    err = _validate([
+        validate_name(data.get("name")),
+        validate_email(data.get("email")),
+        validate_password(data.get("password")),
+    ])
+    if err:
+        return err
 
     if db.get_user_by_email(data["email"]):
         return jsonify({"error": "Email already registered"}), 400
@@ -45,18 +60,29 @@ def register():
 # ═══ Login ═══
 @app.route("/api/login", methods=["POST"])
 def login():
-    data = request.json
-    if not data or not data.get("email") or not data.get("password"):
-        return jsonify({"error": "Missing required fields"}), 400
+    ip = request.remote_addr
+    if login_limiter.is_limited(ip):
+        return jsonify({"error": "Too many attempts. Try again later."}), 429
+
+    data = request.json or {}
+    err = _validate([
+        validate_email(data.get("email")),
+        validate_password(data.get("password")),
+    ])
+    if err:
+        return err
 
     user = db.get_user_by_email(data["email"])
     if not user:
+        login_limiter.record(ip)
         return jsonify({"error": "Invalid email or password"}), 401
 
     password_hash = hashlib.sha256(data["password"].encode()).hexdigest()
     if user["password"] != password_hash:
+        login_limiter.record(ip)
         return jsonify({"error": "Invalid email or password"}), 401
 
+    login_limiter.reset(ip)
     token = create_token(user["user_id"])
     return jsonify({"token": token})
 
@@ -75,9 +101,10 @@ def get_me(user_id):
 @app.route("/api/deposit", methods=["POST"])
 @token_required
 def deposit(user_id):
-    data = request.json
-    if not data or not isinstance(data.get("amount"), (int, float)):
-        return jsonify({"error": "Missing or invalid amount"}), 400
+    data = request.json or {}
+    err = _validate([validate_amount(data.get("amount"))])
+    if err:
+        return err
 
     user_row = db.get_user(user_id)
     if not user_row:
@@ -113,11 +140,12 @@ def orders(user_id):
         result = [{"order_id": r["order_id"], "amount": r["amount"], "status": r["status"]} for r in rows]
         return jsonify(result)
 
-    data = request.json
-    if not data or not data.get("merchant_id"):
-        return jsonify({"error": "Missing required fields"}), 400
-    if not isinstance(data.get("amount"), (int, float)):
-        return jsonify({"error": "Missing or invalid amount"}), 400
+    data = request.json or {}
+    if not data.get("merchant_id"):
+        return jsonify({"error": "Missing merchant_id"}), 400
+    err = _validate([validate_amount(data.get("amount"))])
+    if err:
+        return err
 
     user_row = db.get_user(user_id)
     merchant_row = db.get_merchant(data["merchant_id"])

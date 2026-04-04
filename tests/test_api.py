@@ -34,11 +34,11 @@ def auth_token(client):
     client.post("/api/register", json={
         "name": "Test User",
         "email": "test@mail.com",
-        "password": "pass123",
+        "password": "pass1234",
     })
     res = client.post("/api/login", json={
         "email": "test@mail.com",
-        "password": "pass123",
+        "password": "pass1234",
     })
     return res.json["token"]
 
@@ -75,7 +75,7 @@ class TestRegister:
         res = client.post("/api/register", json={
             "name": "Ahmed",
             "email": "ahmed@test.com",
-            "password": "pass123",
+            "password": "pass1234",
         })
         assert res.status_code == 201
         assert "user_id" in res.json
@@ -86,10 +86,10 @@ class TestRegister:
 
     def test_register_duplicate_email(self, client):
         client.post("/api/register", json={
-            "name": "A", "email": "dup@test.com", "password": "pass",
+            "name": "A", "email": "dup@test.com", "password": "pass1234",
         })
         res = client.post("/api/register", json={
-            "name": "B", "email": "dup@test.com", "password": "pass",
+            "name": "B", "email": "dup@test.com", "password": "pass1234",
         })
         assert res.status_code == 400
 
@@ -98,26 +98,26 @@ class TestRegister:
 class TestLogin:
     def test_login_success(self, client):
         client.post("/api/register", json={
-            "name": "Ali", "email": "ali@test.com", "password": "pass123",
+            "name": "Ali", "email": "ali@test.com", "password": "pass1234",
         })
         res = client.post("/api/login", json={
-            "email": "ali@test.com", "password": "pass123",
+            "email": "ali@test.com", "password": "pass1234",
         })
         assert res.status_code == 200
         assert "token" in res.json
 
     def test_login_wrong_password(self, client):
         client.post("/api/register", json={
-            "name": "Ali", "email": "ali2@test.com", "password": "pass123",
+            "name": "Ali", "email": "ali2@test.com", "password": "pass1234",
         })
         res = client.post("/api/login", json={
-            "email": "ali2@test.com", "password": "wrong",
+            "email": "ali2@test.com", "password": "wrongpass",
         })
         assert res.status_code == 401
 
     def test_login_nonexistent(self, client):
         res = client.post("/api/login", json={
-            "email": "nobody@test.com", "password": "pass",
+            "email": "nobody@test.com", "password": "pass1234",
         })
         assert res.status_code == 401
 
