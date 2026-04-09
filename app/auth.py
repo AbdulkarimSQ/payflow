@@ -8,7 +8,7 @@ import datetime
 from functools import wraps
 from flask import request, jsonify
 
-SECRET_KEY = os.environ.get("PAYFLOW_SECRET_KEY", "payflow-dev-only-key")
+SECRET_KEY = os.environ.get("PAYFLOW_SECRET_KEY", "payflow-dev-secret-key-2026-minimum-32-bytes!")
 
 def create_token(user_id):
     now = datetime.datetime.now(datetime.timezone.utc)
