@@ -11,7 +11,6 @@ A Buy Now Pay Later (BNPL) payment system built with Flask, featuring installmen
 - Merchant management
 - Input validation and error handling
 - Rate limiting for brute force protection
-- Password hashing (SHA-256)
 - 73 automated tests (unit, integration, API, security)
 
 ## Tech Stack
@@ -26,7 +25,15 @@ A Buy Now Pay Later (BNPL) payment system built with Flask, featuring installmen
 git clone https://github.com/AbdulkarimSQ/payflow.git
 cd payflow
 pip install -r requirements.txt
+export PAYFLOW_SECRET_KEY="your-secret-key-min-32-bytes"
 python -m app.routes
+```
+
+## Run with Docker
+
+```bash
+docker build -t payflow .
+docker run -p 8080:8080 -e PAYFLOW_SECRET_KEY="your-secret-key-min-32-bytes" payflow
 ```
 
 ## Run Tests
@@ -39,7 +46,7 @@ pytest tests/ -v
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| POST | /api/ster | Register new user | No |
+| POST | /api/register | Register new user | No |
 | POST | /api/login | Login → JWT token | No |
 | GET | /api/me | Get my profile | Yes |
 | POST | /api/deposit | Deposit funds | Yes |
@@ -51,21 +58,29 @@ pytest tests/ -v
 | GET | /api/health | Health check | No |
 
 ## Testing
-tests/test_models.py    — 18 unit tests
+
+```
+tests/test_models.py    — 19 unit tests
 tests/test_database.py  — 10 integration tests
 tests/test_api.py       — 27 API integration tests
 tests/test_security.py  — 17 security tests
 Total: 73 tests
+```
+
 ## Security
 
 - JWT authentication with 24h token expiry
-- Password hashing (SHA-256)
+- Password hashing (SHA-256 — see note below)
 - Input validation (email, password, amounts)
 - Rate limiting (5 attempts / 15 min)
 - SQL injection protection (parameterized queries)
 - Safe error messages (no info leakage)
 
+> **Note:** SHA-256 is used for password hashing as a learning-stage choice. For production, replace with `bcrypt` or `argon2` (salted, slow hashing) to resist brute force and rainbow-table attacks.
+
 ## Project Structure
+
+```
 payflow/
 ├── app/
 │   ├── models.py          # User, Merchant, Order, Payment
@@ -82,6 +97,8 @@ payflow/
 ├── Dockerfile
 ├── .github/workflows/tests.yml
 └── requirements.txt
+```
+
 ## Author
 
 **Abdulkarim Alqahtani** — [GitHub](https://github.com/AbdulkarimSQ)
