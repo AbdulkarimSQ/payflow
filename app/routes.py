@@ -4,6 +4,7 @@ PayFlow API Routes
 
 import hashlib
 import os
+import requests as http_client
 from flask import Flask, request, jsonify
 from app.models import User, Merchant, Order, Payment
 from app.database import Database
@@ -245,6 +246,17 @@ def pay_installment(user_id, order_id):
         db.update_order(order)
         db.update_user(user)
         db.update_merchant(merchant)
+
+        # Send webhook to n8n
+        try:
+            http_client.post("http://localhost:5678/webhook/payment", json={
+                "order_id": order.order_id,
+                "amount": payment.amount,
+                "remaining": order.get_remaining(),
+                "is_complete": order.status == "completed"
+            })
+        except:
+            pass  # n8n might not be running
 
         return jsonify({
             "message": "Payment successful",
