@@ -276,3 +276,15 @@ class TestPayInstallment:
             client.post(f"/api/orders/{order_id}/pay", headers=funded_headers)
         res = client.post(f"/api/orders/{order_id}/pay", headers=funded_headers)
         assert res.status_code == 400
+
+
+class TestHealth:
+    def test_health_check(self, client):
+        response = client.get("/api/health")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["status"] == "ok"
+
+    def test_health_check_post_not_allowed(self, client):
+        response = client.post("/api/health")
+        assert response.status_code == 405
